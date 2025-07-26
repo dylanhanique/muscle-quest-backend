@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { getEnvVar } from './common/functions';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,7 +16,7 @@ async function bootstrap() {
     }),
   );
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: getEnvVar('CORS_ORIGIN'),
     credentials: true,
   });
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -29,7 +30,7 @@ async function bootstrap() {
   SwaggerModule.setup('swagger', app, document);
 
   const logger = new Logger('Bootstrap');
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(getEnvVar('PORT'));
   logger.log('Application is running 🚀');
 }
 bootstrap();
