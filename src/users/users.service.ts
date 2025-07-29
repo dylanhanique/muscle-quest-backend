@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PublicUser, UserCredentials } from './types/user.types';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
-import { PrismaClientKnownRequestError } from 'generated/prisma/runtime/library';
+import { PrismaClientKnownRequestError } from '../../generated/prisma/runtime/library';
 
 @Injectable()
 export class UsersService {
@@ -68,7 +68,10 @@ export class UsersService {
         email: user.email,
       };
     } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError) {
+      if (
+        error instanceof PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException('Username or email already exists');
       }
       this.logger.error(`Error creating user`, error);
