@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '../users.service';
 import { faker } from '@faker-js/faker';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { PrismaService } from '../../../src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaClientKnownRequestError } from '../../../generated/prisma/runtime/library';
 import { ConflictException } from '@nestjs/common';
 
@@ -65,7 +65,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('should throw a ConflictException ', async () => {
+    it('should throw a ConflictException if credentials are already used', async () => {
       const createUserDto: CreateUserDto = {
         username: faker.internet.username(),
         email: faker.internet.email(),
