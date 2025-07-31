@@ -38,9 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
 
       this.logger.error('Unexpected error in JWT validation:', error);
-      throw new InternalServerErrorException(
-        'Internal server error during validation',
-      );
+      throw new InternalServerErrorException();
     }
   }
 }

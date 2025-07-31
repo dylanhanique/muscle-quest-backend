@@ -34,16 +34,18 @@ export class AuthService {
         : false;
 
       if (user && passwordMatches) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _, ...userWithoutPassword } = user;
         return userWithoutPassword;
       } else {
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException();
       }
     } catch (error) {
-      if (!(error instanceof UnauthorizedException)) {
-        this.logger.error('Unexpected error validating user:', error);
+      this.logger.error('Unexpected error validating user:', error);
+      if (error instanceof UnauthorizedException) {
+        throw error;
       }
-      throw new UnauthorizedException();
+      throw new InternalServerErrorException();
     }
   }
 
@@ -65,10 +67,6 @@ export class AuthService {
     const msJwtRefreshExp = ms(jwtRefreshExp as ms.StringValue);
 
     if (!msJwtRefreshExp) {
-      this.logger.error(
-        'Invalid JWT_REFRESH_EXPIRATION format:',
-        jwtRefreshExp,
-      );
       throw new Error('Invalid JWT_REFRESH_EXPIRATION format');
     }
 
@@ -92,7 +90,7 @@ export class AuthService {
       });
     } catch (error) {
       this.logger.error('Error storing refresh token in database:', error);
-      throw new InternalServerErrorException('Unable to store refresh token');
+      throw new InternalServerErrorException();
     }
 
     return newRefreshToken;
@@ -112,8 +110,7 @@ export class AuthService {
       });
 
       if (!storedHashedToken) {
-        this.logger.error('Invalid refresh token:', hashedToken);
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new UnauthorizedException();
       }
 
       const user = await this.usersService.findOneById(
@@ -121,11 +118,7 @@ export class AuthService {
       );
 
       if (!user) {
-        this.logger.error(
-          'User not found for refresh token:',
-          storedHashedToken.userId,
-        );
-        throw new UnauthorizedException('User not found');
+        throw new UnauthorizedException();
       }
 
       const newRefreshToken = await this.createAndStoreRefreshToken(user.id);
@@ -140,13 +133,13 @@ export class AuthService {
         refresh_token: newRefreshToken,
       };
     } catch (error) {
+      this.logger.error('Error refreshing jwt:', error);
+
       if (error instanceof UnauthorizedException) {
-        this.logger.error('Refresh token validation failed:', error.message);
         throw error;
       }
 
-      this.logger.error('Unexpected error during refresh token:', error);
-      throw new InternalServerErrorException('Failed to refresh access token');
+      throw new InternalServerErrorException();
     }
   }
 }
