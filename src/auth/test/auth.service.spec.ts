@@ -30,26 +30,20 @@ jest.mock('../../common/functions', () => ({
 jest.mock('ms');
 const mockedMs = jest.mocked(ms, { shallow: true });
 
-test('mock getEnvVar fonctionne', () => {
-  expect(getEnvVar('JWT_REFRESH_EXPIRATION')).toBe('7d');
-  expect(getEnvVar('JWT_SUPER_SECRET')).toBe('jwtSuperSecretKey');
-  expect(getEnvVar('foo')).toBe(undefined); // ici tu sais que c’est ta chaîne pas undefined natif
-});
-
 describe('AuthService', () => {
   let service: AuthService;
 
-  let userMock: {
+  let usersServiceMock: {
     findOneForLogin: jest.Mock;
     findOneById: jest.Mock;
   };
 
-  let jwtMock: {
+  let jwtServiceMock: {
     sign: jest.Mock;
     verify: jest.Mock;
   };
 
-  let prismaMock: {
+  let prismaServiceMock: {
     refreshToken: {
       create: jest.Mock;
       findUnique: jest.Mock;
@@ -60,17 +54,17 @@ describe('AuthService', () => {
     jest.clearAllMocks();
     jest.resetModules();
 
-    userMock = {
+    usersServiceMock = {
       findOneForLogin: jest.fn(),
       findOneById: jest.fn(),
     };
 
-    jwtMock = {
+    jwtServiceMock = {
       sign: jest.fn(),
       verify: jest.fn(),
     };
 
-    prismaMock = {
+    prismaServiceMock = {
       refreshToken: {
         create: jest.fn(),
         findUnique: jest.fn(),
@@ -80,9 +74,9 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: UsersService, useValue: userMock },
-        { provide: PrismaService, useValue: prismaMock },
-        { provide: JwtService, useValue: jwtMock },
+        { provide: UsersService, useValue: usersServiceMock },
+        { provide: PrismaService, useValue: prismaServiceMock },
+        { provide: JwtService, useValue: jwtServiceMock },
       ],
     }).compile();
 
@@ -108,7 +102,7 @@ describe('AuthService', () => {
     it('should return the authenticated user', async () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      userMock.findOneForLogin.mockResolvedValue(findOneMockResult);
+      usersServiceMock.findOneForLogin.mockResolvedValue(findOneMockResult);
 
       const expectedResult: AuthenticatedUser = {
         id: findOneMockResult.id,
@@ -120,7 +114,9 @@ describe('AuthService', () => {
         loginDto.password,
       );
 
-      expect(userMock.findOneForLogin).toHaveBeenCalledWith(loginDto.username);
+      expect(usersServiceMock.findOneForLogin).toHaveBeenCalledWith(
+        loginDto.username,
+      );
 
       expect(bcrypt.compare).toHaveBeenCalledWith(
         loginDto.password,
@@ -132,7 +128,7 @@ describe('AuthService', () => {
     });
 
     it('should throw an UnauthorizedException if the user does not exist', async () => {
-      userMock.findOneForLogin.mockResolvedValue(null);
+      usersServiceMock.findOneForLogin.mockResolvedValue(null);
 
       await expect(
         service.validateUser(loginDto.username, loginDto.password),
@@ -140,7 +136,7 @@ describe('AuthService', () => {
     });
 
     it('should throw an UnauthorizedException if the password does not match', async () => {
-      userMock.findOneForLogin.mockResolvedValue(findOneMockResult);
+      usersServiceMock.findOneForLogin.mockResolvedValue(findOneMockResult);
 
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
@@ -148,7 +144,9 @@ describe('AuthService', () => {
         service.validateUser(loginDto.username, loginDto.password),
       ).rejects.toThrow(UnauthorizedException);
 
-      expect(userMock.findOneForLogin).toHaveBeenCalledWith(loginDto.username);
+      expect(usersServiceMock.findOneForLogin).toHaveBeenCalledWith(
+        loginDto.username,
+      );
 
       expect(bcrypt.compare).toHaveBeenCalledWith(
         loginDto.password,
@@ -165,7 +163,7 @@ describe('AuthService', () => {
 
       const jwtMockResult =
         'eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MzI2MzgxMDYsImV4cCI6MTczMjY5MjUwOSwibmJmIjoxNzA1MDgxNjQ4LCJpc3MiOiJHdXRrb3dza2kgYW5kIFNvbnMiLCJzdWIiOiJlMzQxZjMwNS0yM2I2LTRkYmQtOTY2ZC1iNDRiZmM0ZGIzMGUiLCJhdWQiOiI0YzMwZGE3Yi0zZDUzLTQ4OGUtYTAyZC0zOWI2MDZiZmYxMTciLCJqdGkiOiJiMGZmOTMzOC04ODMwLTRmNDgtYjA3Ny1kNDNmMjU2OGZlYzAifQ';
-      jwtMock.sign.mockReturnValue(jwtMockResult);
+      jwtServiceMock.sign.mockReturnValue(jwtMockResult);
 
       (hashToken as jest.Mock).mockReturnValue(
         'f01714144b21786288003905ebfa9d10acdd0f43dca2d18bb77b582d519eb747',
@@ -184,20 +182,20 @@ describe('AuthService', () => {
         revoked: false,
       };
 
-      prismaMock.refreshToken.create.mockResolvedValue(mockResult);
+      prismaServiceMock.refreshToken.create.mockResolvedValue(mockResult);
       const result = await service.createAndStoreRefreshToken(1);
 
       expect(getEnvVar).toHaveBeenNthCalledWith(1, 'JWT_REFRESH_EXPIRATION');
       expect(getEnvVar).toHaveBeenLastCalledWith('JWT_SUPER_SECRET');
       expect(ms).toHaveBeenCalledWith('7d');
-      expect(jwtMock.sign).toHaveBeenLastCalledWith(
+      expect(jwtServiceMock.sign).toHaveBeenLastCalledWith(
         {},
         {
           expiresIn: '7d',
           secret: 'jwtSuperSecretKey',
         },
       );
-      expect(prismaMock.refreshToken.create).toHaveBeenCalledWith({
+      expect(prismaServiceMock.refreshToken.create).toHaveBeenCalledWith({
         data: {
           userId: 1,
           tokenHash: hashedToken,
@@ -272,10 +270,12 @@ describe('AuthService', () => {
     const newAccessToken = 'newAccessToken';
 
     it('should return new access & refresh tokens when refresh token is valid', async () => {
-      jwtMock.verify.mockReturnValue({});
+      jwtServiceMock.verify.mockReturnValue({});
       (hashToken as jest.Mock).mockReturnValue(hashedToken);
-      prismaMock.refreshToken.findUnique.mockResolvedValue(storedHashedToken);
-      userMock.findOneById.mockResolvedValue(user);
+      prismaServiceMock.refreshToken.findUnique.mockResolvedValue(
+        storedHashedToken,
+      );
+      usersServiceMock.findOneById.mockResolvedValue(user);
       const spyCASRF = jest
         .spyOn(service, 'createAndStoreRefreshToken')
         .mockResolvedValue(newRefreshToken);
@@ -288,13 +288,13 @@ describe('AuthService', () => {
         refresh_token: newRefreshToken,
       });
       expect(getEnvVar).toHaveBeenCalledWith('JWT_SUPER_SECRET');
-      expect(jwtMock.verify).toHaveBeenCalledWith(refreshToken, {
+      expect(jwtServiceMock.verify).toHaveBeenCalledWith(refreshToken, {
         secret: 'jwtSuperSecretKey',
       });
-      expect(prismaMock.refreshToken.findUnique).toHaveBeenCalledWith({
+      expect(prismaServiceMock.refreshToken.findUnique).toHaveBeenCalledWith({
         where: { tokenHash: hashedToken },
       });
-      expect(userMock.findOneById).toHaveBeenCalledWith(
+      expect(usersServiceMock.findOneById).toHaveBeenCalledWith(
         storedHashedToken.userId,
       );
       expect(spyCASRF).toHaveBeenCalledWith(user.id);
@@ -305,7 +305,7 @@ describe('AuthService', () => {
     });
 
     it('should throw an UnauthorizedException if refresh token is not valid', async () => {
-      jwtMock.verify.mockReturnValue(
+      jwtServiceMock.verify.mockReturnValue(
         new JsonWebTokenError('invalid signature'),
       );
 
@@ -315,9 +315,9 @@ describe('AuthService', () => {
     });
 
     it('should throw an UnauthorizedException if refresh token is not found in DB', async () => {
-      jwtMock.verify.mockReturnValue({});
+      jwtServiceMock.verify.mockReturnValue({});
       (hashToken as jest.Mock).mockReturnValue(hashedToken);
-      prismaMock.refreshToken.findUnique.mockResolvedValue(null);
+      prismaServiceMock.refreshToken.findUnique.mockResolvedValue(null);
 
       await expect(service.refreshTokens(refreshToken)).rejects.toThrow(
         UnauthorizedException,
@@ -325,10 +325,12 @@ describe('AuthService', () => {
     });
 
     it('should throw an UnauthorizedException if user is not found in DB', async () => {
-      jwtMock.verify.mockReturnValue({});
+      jwtServiceMock.verify.mockReturnValue({});
       (hashToken as jest.Mock).mockReturnValue(hashedToken);
-      prismaMock.refreshToken.findUnique.mockResolvedValue(storedHashedToken);
-      userMock.findOneById.mockResolvedValue(null);
+      prismaServiceMock.refreshToken.findUnique.mockResolvedValue(
+        storedHashedToken,
+      );
+      usersServiceMock.findOneById.mockResolvedValue(null);
 
       await expect(service.refreshTokens(refreshToken)).rejects.toThrow(
         UnauthorizedException,
@@ -336,9 +338,9 @@ describe('AuthService', () => {
     });
 
     it('should throw an InternalServerErrorException for other errors like Prisma error', async () => {
-      jwtMock.verify.mockReturnValue({});
+      jwtServiceMock.verify.mockReturnValue({});
       (hashToken as jest.Mock).mockReturnValue(hashedToken);
-      prismaMock.refreshToken.findUnique.mockRejectedValue(
+      prismaServiceMock.refreshToken.findUnique.mockRejectedValue(
         PrismaClientUnknownRequestError,
       );
 
