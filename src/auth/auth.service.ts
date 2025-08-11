@@ -40,7 +40,6 @@ export class AuthService {
         throw new UnauthorizedException();
       }
     } catch (error) {
-      this.logger.error('Unexpected error validating user:', error);
       if (error instanceof UnauthorizedException) {
         throw error;
       }
