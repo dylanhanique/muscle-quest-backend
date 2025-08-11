@@ -34,7 +34,6 @@ export class AuthService {
         : false;
 
       if (user && passwordMatches) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _, ...userWithoutPassword } = user;
         return userWithoutPassword;
       } else {
@@ -49,54 +48,56 @@ export class AuthService {
     }
   }
 
+  createAccessToken(payload: JwtPayload): string {
+    return this.jwtService.sign(payload, {
+      secret: getEnvVar('JWT_SECRET'),
+      expiresIn: getEnvVar('JWT_EXPIRATION'),
+    });
+  }
+
   async login(user: AuthenticatedUser) {
     const payload: JwtPayload = { username: user.username, sub: user.id };
     return {
-      tokens: {
-        access_token: this.jwtService.sign(payload, {
-          secret: getEnvVar('JWT_SECRET'),
-          expiresIn: getEnvVar('JWT_EXPIRATION'),
-        }),
-        refresh_token: await this.createAndStoreRefreshToken(user.id),
-      },
+      access_token: this.createAccessToken(payload),
+      refresh_token: await this.createAndStoreRefreshToken(user.id),
     };
   }
 
   async createAndStoreRefreshToken(userId: number): Promise<string> {
-    const jwtRefreshExp = getEnvVar('JWT_REFRESH_EXPIRATION');
-    const msJwtRefreshExp = ms(jwtRefreshExp as ms.StringValue);
-
-    if (!msJwtRefreshExp) {
-      throw new Error('Invalid JWT_REFRESH_EXPIRATION format');
-    }
-
-    const newRefreshToken = this.jwtService.sign(
-      {},
-      {
-        secret: getEnvVar('JWT_SUPER_SECRET'),
-        expiresIn: jwtRefreshExp,
-      },
-    );
-
-    const hashedToken = hashToken(newRefreshToken);
-
     try {
+      const jwtRefreshExp = getEnvVar('JWT_REFRESH_EXPIRATION');
+      const msJwtRefreshExp = ms(jwtRefreshExp as ms.StringValue);
+      const expirationDate = new Date(Date.now() + msJwtRefreshExp);
+
+      if (isNaN(expirationDate.getTime())) {
+        throw new InternalServerErrorException('Invalid expiration date');
+      }
+
+      const newRefreshToken = this.jwtService.sign(
+        {},
+        {
+          secret: getEnvVar('JWT_SUPER_SECRET'),
+          expiresIn: jwtRefreshExp,
+        },
+      );
+
+      const hashedToken = hashToken(newRefreshToken);
+
       await this.prisma.refreshToken.create({
         data: {
           userId,
           tokenHash: hashedToken,
-          expiresAt: new Date(Date.now() + msJwtRefreshExp),
+          expiresAt: expirationDate,
         },
       });
+
+      return newRefreshToken;
     } catch (error) {
-      this.logger.error('Error storing refresh token in database:', error);
       throw new InternalServerErrorException();
     }
-
-    return newRefreshToken;
   }
 
-  async refreshAccessToken(refreshToken: string) {
+  async refreshTokens(refreshToken: string) {
     try {
       this.jwtService.verify(refreshToken, {
         secret: getEnvVar('JWT_SUPER_SECRET'),
@@ -110,7 +111,7 @@ export class AuthService {
       });
 
       if (!storedHashedToken) {
-        throw new UnauthorizedException();
+        throw new UnauthorizedException('Refresh token not found in DB');
       }
 
       const user = await this.usersService.findOneById(
@@ -118,7 +119,7 @@ export class AuthService {
       );
 
       if (!user) {
-        throw new UnauthorizedException();
+        throw new UnauthorizedException('User not found in DB');
       }
 
       const newRefreshToken = await this.createAndStoreRefreshToken(user.id);
@@ -126,20 +127,19 @@ export class AuthService {
       const payload: JwtPayload = { username: user.username, sub: user.id };
 
       return {
-        access_token: this.jwtService.sign(payload, {
-          secret: getEnvVar('JWT_SECRET'),
-          expiresIn: getEnvVar('JWT_EXPIRATION'),
-        }),
+        access_token: this.createAccessToken(payload),
         refresh_token: newRefreshToken,
       };
     } catch (error) {
-      this.logger.error('Error refreshing jwt:', error);
-
-      if (error instanceof UnauthorizedException) {
-        throw error;
+      if (
+        error instanceof UnauthorizedException ||
+        error.message === 'invalid signature' ||
+        error.message === 'jwt expired'
+      ) {
+        throw new UnauthorizedException('Invalid refresh token');
       }
 
-      throw new InternalServerErrorException();
+      throw new InternalServerErrorException('An unexpected error occured');
     }
   }
 }

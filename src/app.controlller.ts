@@ -29,7 +29,6 @@ export class AppController {
   @UsePipes(new ValidationPipe())
   @Post('auth/refresh-token')
   async refreshToken(@Body('refreshToken') refreshToken: string) {
-    console.log(refreshToken);
-    return await this.authService.refreshAccessToken(refreshToken);
+    return await this.authService.refreshTokens(refreshToken);
   }
 }
