@@ -28,10 +28,11 @@ model User {
 }
 
 model RefreshToken {
-  id        Int      @id @default(autoincrement())
+  id        String   @id
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
   tokenHash String   @unique
+  salt      String
   expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

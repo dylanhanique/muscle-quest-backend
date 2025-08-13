@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 export function getEnvVar(name: string): string {
   const value = process.env[name];
@@ -8,6 +8,12 @@ export function getEnvVar(name: string): string {
   return value;
 }
 
-export function hashToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+export function hashToken(token: string) {
+  const salt = randomBytes(16).toString('hex');
+
+  const hash = createHash('sha256')
+    .update(salt + token)
+    .digest('hex');
+
+  return { hash, salt };
 }
