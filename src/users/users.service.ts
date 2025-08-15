@@ -51,6 +51,7 @@ export class UsersService {
     }
   }
 
+  //TODO: convertir createUserDto en interface
   async createUser(createUserDto: CreateUserDto): Promise<PublicUser> {
     try {
       const cryptedPassword = await bcrypt.hash(createUserDto.password, 10);

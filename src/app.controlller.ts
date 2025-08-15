@@ -26,9 +26,13 @@ export class AppController {
     return await this.authService.login(req.user);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @UsePipes(new ValidationPipe())
   @Post('auth/refresh-token')
-  async refreshToken(@Body('refreshToken') refreshToken: string) {
-    return await this.authService.refreshTokens(refreshToken);
+  async refreshToken(
+    @Request() req: { user: AuthenticatedUser },
+    @Body('refreshToken') refreshToken: string,
+  ) {
+    return await this.authService.refreshTokens(refreshToken, req.user);
   }
 }

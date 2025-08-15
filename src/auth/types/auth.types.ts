@@ -12,11 +12,4 @@ export interface JwtPayload {
 
 export type CreateJwtPayload = Pick<JwtPayload, 'sub' | 'username'>;
 
-export interface RefreshTokenPayload {
-  id: string;
-  sub: number;
-  iat: number;
-  exp: number;
-}
-
 export type CurrentUser = AuthenticatedUser;
