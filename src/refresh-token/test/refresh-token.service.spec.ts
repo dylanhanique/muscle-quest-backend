@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RefreshTokenService } from './refresh-token.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { RefreshTokenService } from '../refresh-token.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { JsonWebTokenError, JwtService } from '@nestjs/jwt';
-import { RefreshToken } from '../../generated/prisma';
+import { RefreshToken } from '../../../generated/prisma';
 import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { v4 } from 'uuid';
-import { getEnvVar } from '../common/functions';
+import { getEnvVar } from '../../common/functions';
 import * as ms from 'ms';
-import { UsersService } from '../users/users.service';
-import { PrismaClientUnknownRequestError } from '../../generated/prisma/runtime/library';
+import { UsersService } from '../../users/users.service';
+import { PrismaClientUnknownRequestError } from '../../../generated/prisma/runtime/library';
 
 jest.mock('../common/functions', () => ({
   getEnvVar: jest.fn((key) => {
