@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { AppController } from './app.controlller';
 import { RefreshTokenModule } from './refresh-token/refresh-token.module';
+import { WorkoutModule } from './workout/workout.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { RefreshTokenModule } from './refresh-token/refresh-token.module';
     AuthModule,
     UsersModule,
     RefreshTokenModule,
+    WorkoutModule,
   ],
   controllers: [AppController],
   providers: [],
