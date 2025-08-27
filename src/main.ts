@@ -1,25 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
-import { ValidationPipe } from '@nestjs/common';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { getEnvVar } from './common/functions';
+import * as dotenv from 'dotenv';
+import { setupApp } from './bootstrap-app';
+
+dotenv.config({
+  path: `.env.${process.env.NODE_ENV}`,
+});
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
-  app.enableCors({
-    origin: getEnvVar('CORS_ORIGIN'),
-    credentials: true,
-  });
-  app.useGlobalFilters(new HttpExceptionFilter());
+  await setupApp(app);
 
   const config = new DocumentBuilder()
     .setTitle('MuscleQuest Backend')
@@ -33,4 +26,5 @@ async function bootstrap() {
   await app.listen(getEnvVar('PORT'));
   logger.log('Application is running 🚀');
 }
+
 bootstrap();

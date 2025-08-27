@@ -6,10 +6,17 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaClientUnknownRequestError } from '../../../generated/prisma/runtime/library';
+import { JwtPayload } from '../types/auth.types';
 
 let usersServiceMock: {
   findOneById: jest.Mock;
 };
+
+jest.mock('../../common/functions', () => ({
+  getEnvVar: jest.fn((key) => {
+    if (key === 'JWT_SECRET') return 'jwtSecretKey';
+  }),
+}));
 
 describe('JwtStrategy', () => {
   let service: JwtStrategy;
@@ -36,6 +43,13 @@ describe('JwtStrategy', () => {
   });
 
   describe('validate', () => {
+    const jwtPayload: JwtPayload = {
+      sub: 1,
+      username: 'username',
+      iat: 1700000000,
+      exp: 1700000000,
+    };
+
     it('should return the validated user', async () => {
       const user = {
         id: 1,
@@ -44,16 +58,14 @@ describe('JwtStrategy', () => {
       };
 
       usersServiceMock.findOneById.mockResolvedValue(user);
-      expect(
-        await service.validate({ sub: user.id, username: user.username }),
-      ).toEqual(user);
+      expect(await service.validate(jwtPayload)).toEqual(user);
     });
 
     it('should return an UnauthorizedException if user does not exist', async () => {
       usersServiceMock.findOneById.mockResolvedValue(null);
 
       await expect(
-        service.validate({ sub: 1, username: 'username' }),
+        service.validate({ ...jwtPayload, username: 'username' }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -62,9 +74,9 @@ describe('JwtStrategy', () => {
         PrismaClientUnknownRequestError,
       );
 
-      await expect(
-        service.validate({ sub: 1, username: 'username' }),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.validate(jwtPayload)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });

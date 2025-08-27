@@ -7,14 +7,13 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { AuthenticatedUser, CreateJwtPayload } from './types/auth.types';
 import { getEnvVar } from '../common/functions';
-import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
+import { RefreshTokenPayload } from '../refresh-token/types/refresh-token.types';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly refreshTokenService: RefreshTokenService,
@@ -56,14 +55,23 @@ export class AuthService {
     const payload: CreateJwtPayload = { username: user.username, sub: user.id };
     return {
       access_token: this.issueAccessToken(payload),
-      refresh_token: await this.refreshTokenService.issueRefreshToken(user.id),
+      refresh_token: await this.refreshTokenService.create(user.id),
     };
   }
 
-  //TODO: logout
+  //TODO: logout, implement a too many requests limit
 
-  async refreshTokens(refreshToken: string, user: AuthenticatedUser) {
+  async refreshTokens(refreshToken: string) {
+    const decodedRefreshToken: RefreshTokenPayload =
+      this.jwtService.decode(refreshToken);
+
     try {
+      const user = await this.usersService.findOneById(decodedRefreshToken.sub);
+
+      if (!user) {
+        throw new UnauthorizedException('User not found in DB');
+      }
+
       const payload: CreateJwtPayload = {
         username: user.username,
         sub: user.id,
@@ -73,7 +81,7 @@ export class AuthService {
         access_token: this.issueAccessToken(payload),
         refresh_token: await this.refreshTokenService.rotate(
           refreshToken,
-          user.id,
+          user,
         ),
       };
     } catch (error) {

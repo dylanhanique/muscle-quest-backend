@@ -3,12 +3,12 @@ import { PassportStrategy } from '@nestjs/passport';
 import {
   Injectable,
   InternalServerErrorException,
-  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtPayload } from './types/auth.types';
 import { UsersService } from '../users/users.service';
 import { getEnvVar } from '../common/functions';
+import { PublicUser } from '../users/types/user.types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -20,9 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  private readonly logger = new Logger(JwtStrategy.name);
-
-  async validate(payload: JwtPayload) {
+  async validate(payload: JwtPayload): Promise<PublicUser> {
     try {
       const user = await this.userService.findOneById(payload.sub);
 
@@ -36,7 +34,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw error;
       }
 
-      this.logger.error('Unexpected error in JWT validation:', error);
       throw new InternalServerErrorException();
     }
   }

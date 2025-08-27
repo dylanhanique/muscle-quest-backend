@@ -7,6 +7,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { CreateWorkoutDto, UpdateWorkoutNameDto } from '../dto/workout.dto';
 
 let prismaServiceMock: {
   workout: {
@@ -57,11 +58,15 @@ describe('WorkoutService', () => {
   });
 
   describe('create', () => {
+    const createWorkoutDto: CreateWorkoutDto = {
+      name: workoutMock.name,
+    };
+
     it('should return the newly created workout', async () => {
       prismaServiceMock.workout.create.mockResolvedValue(workoutMock);
 
       expect(
-        await service.create(workoutMock.userId, workoutMock.name),
+        await service.create(workoutMock.userId, createWorkoutDto),
       ).toEqual(workoutMock);
       expect(prismaServiceMock.workout.create).toHaveBeenCalledWith({
         data: { userId: workoutMock.userId, name: workoutMock.name },
@@ -75,7 +80,7 @@ describe('WorkoutService', () => {
         }),
       );
       await expect(
-        service.create(workoutMock.id, workoutMock.name),
+        service.create(workoutMock.id, createWorkoutDto),
       ).rejects.toThrow(InternalServerErrorException);
     });
   });
@@ -151,6 +156,9 @@ describe('WorkoutService', () => {
 
   describe('updateName', () => {
     const updateMockResult = { ...workoutMock, name: 'NewName' };
+    const updateWorkoutNameDto: UpdateWorkoutNameDto = {
+      name: updateMockResult.name,
+    };
 
     it('should update name and return workout if id and userId is correct', async () => {
       prismaServiceMock.workout.findUnique.mockResolvedValue(workoutMock);
@@ -160,7 +168,7 @@ describe('WorkoutService', () => {
         await service.updateName(
           workoutMock.id,
           workoutMock.userId,
-          updateMockResult.name,
+          updateWorkoutNameDto,
         ),
       ).toEqual(updateMockResult);
       expect(prismaServiceMock.workout.findUnique).toHaveBeenCalledWith({
@@ -179,7 +187,7 @@ describe('WorkoutService', () => {
         service.updateName(
           workoutMock.id,
           workoutMock.userId,
-          updateMockResult.name,
+          updateWorkoutNameDto,
         ),
       ).rejects.toThrow(NotFoundException);
       expect(prismaServiceMock.workout.findUnique).toHaveBeenCalledWith({
@@ -199,7 +207,7 @@ describe('WorkoutService', () => {
         service.updateName(
           workoutMock.id,
           workoutMock.userId,
-          updateMockResult.name,
+          updateWorkoutNameDto,
         ),
       ).rejects.toThrow(InternalServerErrorException);
     });

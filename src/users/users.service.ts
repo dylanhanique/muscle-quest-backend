@@ -2,7 +2,6 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
-  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicUser, UserCredentials } from './types/user.types';
@@ -13,8 +12,6 @@ import { PrismaClientKnownRequestError } from '../../generated/prisma/runtime/li
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private readonly logger = new Logger(UsersService.name);
 
   async findOneForLogin(username: string): Promise<UserCredentials | null> {
     try {
@@ -27,10 +24,6 @@ export class UsersService {
         },
       });
     } catch (error) {
-      this.logger.error(
-        `Error finding user for login with username ${username}`,
-        error,
-      );
       throw new InternalServerErrorException();
     }
   }
@@ -46,7 +39,6 @@ export class UsersService {
         },
       });
     } catch (error) {
-      this.logger.error(`Error finding user with id : ${id}`, error);
       throw new InternalServerErrorException();
     }
   }
@@ -55,19 +47,15 @@ export class UsersService {
   async createUser(createUserDto: CreateUserDto): Promise<PublicUser> {
     try {
       const cryptedPassword = await bcrypt.hash(createUserDto.password, 10);
-      const user = await this.prisma.user.create({
+
+      return await this.prisma.user.create({
         data: {
           username: createUserDto.username,
           email: createUserDto.email,
           password: cryptedPassword,
         },
+        select: { id: true, username: true, email: true },
       });
-
-      return {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-      };
     } catch (error) {
       if (
         error instanceof PrismaClientKnownRequestError &&
@@ -75,7 +63,6 @@ export class UsersService {
       ) {
         throw new ConflictException('Username or email already exists');
       }
-      this.logger.error(`Error creating user`, error);
       throw new InternalServerErrorException();
     }
   }

@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '../auth.service';
 import { UsersService } from '../../users/users.service';
-import { LoginDto } from '../dto/login.dto';
-import { faker } from '@faker-js/faker/.';
+import { LoginDto } from '../dto/auth.dto';
+import { faker } from '@faker-js/faker';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -175,7 +175,7 @@ describe('AuthService', () => {
       const refreshToken = 'refreshToken';
 
       jest.spyOn(service, 'issueAccessToken').mockReturnValue(accessToken);
-      refreshTokenServiceMock.issueRefreshToken.mockResolvedValue(refreshToken);
+      refreshTokenServiceMock.create.mockResolvedValue(refreshToken);
 
       expect(await service.login(user)).toEqual({
         access_token: accessToken,
@@ -194,24 +194,30 @@ describe('AuthService', () => {
     const newAccessToken = 'newAccessToken';
 
     it('should return new acces token & refresh token', async () => {
+      const decodeMockResult = { sub: 1, id: '123-456-789' };
+      jwtServiceMock.decode.mockReturnValue(decodeMockResult);
+
+      usersServiceMock.findOneById.mockResolvedValue(user);
+
       const spyissueAccessToken = jest
         .spyOn(service, 'issueAccessToken')
         .mockReturnValue(newAccessToken);
 
       refreshTokenServiceMock.rotate.mockResolvedValue(newRefreshToken);
 
-      expect(await service.refreshTokens(refreshToken, user)).toEqual({
+      expect(await service.refreshTokens(refreshToken)).toEqual({
         access_token: newAccessToken,
         refresh_token: newRefreshToken,
       });
-      expect(refreshTokenServiceMock.rotate).toHaveBeenCalledWith(
-        refreshToken,
-        user.id,
-      );
+      expect(usersServiceMock.findOneById).toHaveBeenCalledWith(user.id);
       expect(spyissueAccessToken).toHaveBeenCalledWith({
         username: user.username,
         sub: user.id,
       });
+      expect(refreshTokenServiceMock.rotate).toHaveBeenCalledWith(
+        refreshToken,
+        user,
+      );
     });
   });
 

@@ -13,7 +13,7 @@ import * as ms from 'ms';
 import { UsersService } from '../../users/users.service';
 import { PrismaClientUnknownRequestError } from '../../../generated/prisma/runtime/library';
 
-jest.mock('../common/functions', () => ({
+jest.mock('../../common/functions', () => ({
   getEnvVar: jest.fn((key) => {
     if (key === 'JWT_REFRESH_EXPIRATION') return '7d';
     if (key === 'JWT_SUPER_SECRET') return 'jwtSuperSecretKey';
@@ -150,12 +150,8 @@ describe('RefreshTokenService', () => {
     });
   });
 
-  describe('issueRefreshToken', () => {
-    const jwtMsExpMockResult = 604800000;
-
-    it('should create and return the refresh token', async () => {
-      mockedMs.mockReturnValue(jwtMsExpMockResult);
-
+  describe('generateRefreshToken', () => {
+    it('should generate a new refresh token', () => {
       const jwtMockResult = 'jsonWebToken';
       jwtServiceMock.sign.mockReturnValue(jwtMockResult);
 
@@ -167,47 +163,88 @@ describe('RefreshTokenService', () => {
         .spyOn(service, 'hashRefreshToken')
         .mockReturnValue(hashTokenMockResult);
 
-      jest.spyOn(Date, 'now').mockReturnValue(1_000_000_000_000);
-
-      const createTokenMockResult = {
-        id: v4MockResult,
-        userId: 1,
-        tokenHash: hashTokenMockResult.hash,
+      const expectedResult = {
+        refreshToken: jwtMockResult,
+        payload: { id: v4MockResult, sub: 1 },
+        hash: hashTokenMockResult.hash,
         salt: hashTokenMockResult.salt,
-        expiresAt: new Date(1_000_000_000_000 + jwtMsExpMockResult),
-        createdAt: new Date(1_000_000_000_000),
-        updatedAt: new Date(1_000_000_000_000),
-        revoked: false,
       };
 
-      prismaServiceMock.refreshToken.create.mockResolvedValue(
-        createTokenMockResult,
-      );
-      const result = await service.issueRefreshToken(1);
-
+      const result = service.generateRefreshToken(expectedResult.payload.sub);
+      expect(result).toEqual(expectedResult);
       expect(getEnvVar).toHaveBeenNthCalledWith(1, 'JWT_REFRESH_EXPIRATION');
       expect(getEnvVar).toHaveBeenLastCalledWith('JWT_SUPER_SECRET');
-      expect(ms).toHaveBeenCalledWith('7d');
-      expect(jwtServiceMock.sign).toHaveBeenLastCalledWith(
+      expect(jwtServiceMock.sign).toHaveBeenCalledWith(
         {
           id: v4MockResult,
-          sub: createTokenMockResult.userId,
+          sub: 1,
         },
         {
           expiresIn: '7d',
           secret: 'jwtSuperSecretKey',
         },
       );
+    });
+
+    it('should throw an InternalServerErrorException if an env var is missing', () => {
+      (getEnvVar as jest.Mock).mockImplementationOnce(() => {
+        throw new Error();
+      });
+
+      expect(() => service.generateRefreshToken(1)).toThrow(
+        InternalServerErrorException,
+      );
+    });
+  });
+
+  describe('create', () => {
+    const jwtMsExpMockResult = 604800000;
+
+    it('should create and return the refresh token', async () => {
+      mockedMs.mockReturnValue(jwtMsExpMockResult);
+
+      const generateTokenMockResult = {
+        refreshToken: 'refreshToken',
+        payload: { id: '123', sub: 1 },
+        hash: 'tokenHash',
+        salt: 'salt',
+      };
+      const spyGenerateRefreshToken = jest
+        .spyOn(service, 'generateRefreshToken')
+        .mockReturnValue(generateTokenMockResult);
+
+      jest.spyOn(Date, 'now').mockReturnValue(1_000_000_000_000);
+
+      const createMockResult = {
+        id: generateTokenMockResult.payload.id,
+        userId: generateTokenMockResult.payload.sub,
+        tokenHash: generateTokenMockResult.hash,
+        salt: generateTokenMockResult.salt,
+        expiresAt: new Date(1_000_000_000_000 + jwtMsExpMockResult),
+        createdAt: new Date(1_000_000_000_000),
+        updatedAt: new Date(1_000_000_000_000),
+        revoked: false,
+      };
+
+      prismaServiceMock.refreshToken.create.mockResolvedValue(createMockResult);
+
+      const result = await service.create(generateTokenMockResult.payload.sub);
+      expect(result).toEqual(generateTokenMockResult.refreshToken);
+
+      expect(getEnvVar).toHaveBeenNthCalledWith(1, 'JWT_REFRESH_EXPIRATION');
+      expect(ms).toHaveBeenCalledWith('7d');
+      expect(spyGenerateRefreshToken).toHaveBeenCalledWith(
+        generateTokenMockResult.payload.sub,
+      );
       expect(prismaServiceMock.refreshToken.create).toHaveBeenCalledWith({
         data: {
-          id: v4MockResult,
-          userId: 1,
-          tokenHash: hashTokenMockResult.hash,
-          salt: hashTokenMockResult.salt,
+          id: generateTokenMockResult.payload.id,
+          userId: generateTokenMockResult.payload.sub,
+          tokenHash: generateTokenMockResult.hash,
+          salt: generateTokenMockResult.salt,
           expiresAt: new Date(1_000_000_000_000 + jwtMsExpMockResult),
         },
       });
-      expect(result).toEqual(jwtMockResult);
     });
 
     it('should throw an InternalServerErrorException if an env var is missing', async () => {
@@ -215,7 +252,7 @@ describe('RefreshTokenService', () => {
         throw new Error();
       });
 
-      await expect(service.issueRefreshToken(1)).rejects.toThrow(
+      await expect(service.create(1)).rejects.toThrow(
         InternalServerErrorException,
       );
     });
@@ -227,7 +264,7 @@ describe('RefreshTokenService', () => {
 
       mockedMs.mockReturnValue(undefined as any);
 
-      await expect(service.issueRefreshToken(1)).rejects.toThrow(
+      await expect(service.create(1)).rejects.toThrow(
         InternalServerErrorException,
       );
     });
@@ -260,7 +297,6 @@ describe('RefreshTokenService', () => {
       prismaServiceMock.refreshToken.findUnique.mockResolvedValue(
         storedRefreshToken,
       );
-      usersServiceMock.findOneById.mockResolvedValue(user);
 
       jest.spyOn(service, 'ensureRefreshTokenMatches').mockReturnValue();
 
@@ -269,13 +305,11 @@ describe('RefreshTokenService', () => {
         revoked: true,
       });
 
-      const spyIssueRefreshToken = jest
-        .spyOn(service, 'issueRefreshToken')
+      const spyCreate = jest
+        .spyOn(service, 'create')
         .mockResolvedValue(newRefreshToken);
 
-      expect(await service.rotate(refreshToken, user.id)).toEqual(
-        newRefreshToken,
-      );
+      expect(await service.rotate(refreshToken, user)).toEqual(newRefreshToken);
 
       expect(getEnvVar).toHaveBeenCalledWith('JWT_SUPER_SECRET');
       expect(jwtServiceMock.verify).toHaveBeenCalledWith(refreshToken, {
@@ -290,10 +324,7 @@ describe('RefreshTokenService', () => {
           revoked: true,
         },
       });
-      expect(usersServiceMock.findOneById).toHaveBeenCalledWith(
-        storedRefreshToken.userId,
-      );
-      expect(spyIssueRefreshToken).toHaveBeenCalledWith(user.id);
+      expect(spyCreate).toHaveBeenCalledWith(user.id);
     });
 
     it('should throw an UnauthorizedException if refresh token is not valid', async () => {
@@ -307,7 +338,7 @@ describe('RefreshTokenService', () => {
         revoked: true,
       });
 
-      await expect(service.rotate(refreshToken, user.id)).rejects.toThrow(
+      await expect(service.rotate(refreshToken, user)).rejects.toThrow(
         UnauthorizedException,
       );
       expect(prismaServiceMock.refreshToken.updateMany).toHaveBeenCalledWith({
@@ -326,7 +357,7 @@ describe('RefreshTokenService', () => {
         revoked: true,
       });
 
-      await expect(service.rotate(refreshToken, user.id)).rejects.toThrow(
+      await expect(service.rotate(refreshToken, user)).rejects.toThrow(
         UnauthorizedException,
       );
       expect(prismaServiceMock.refreshToken.updateMany).toHaveBeenCalledWith({
@@ -343,7 +374,7 @@ describe('RefreshTokenService', () => {
       );
       usersServiceMock.findOneById.mockResolvedValue(null);
 
-      await expect(service.rotate(refreshToken, user.id)).rejects.toThrow(
+      await expect(service.rotate(refreshToken, user)).rejects.toThrow(
         UnauthorizedException,
       );
       expect(prismaServiceMock.refreshToken.updateMany).toHaveBeenCalledWith({
@@ -366,7 +397,7 @@ describe('RefreshTokenService', () => {
           throw new UnauthorizedException();
         });
 
-      await expect(service.rotate(refreshToken, user.id)).rejects.toThrow(
+      await expect(service.rotate(refreshToken, user)).rejects.toThrow(
         UnauthorizedException,
       );
       expect(prismaServiceMock.refreshToken.updateMany).toHaveBeenCalledWith({
@@ -382,7 +413,7 @@ describe('RefreshTokenService', () => {
         PrismaClientUnknownRequestError,
       );
 
-      await expect(service.rotate(refreshToken, user.id)).rejects.toThrow(
+      await expect(service.rotate(refreshToken, user)).rejects.toThrow(
         InternalServerErrorException,
       );
     });

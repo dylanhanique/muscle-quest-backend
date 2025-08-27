@@ -12,6 +12,7 @@ import { createHash, randomBytes } from 'crypto';
 import { RefreshToken } from '../../generated/prisma';
 import { RefreshTokenPayload } from './types/refresh-token.types';
 import { UsersService } from '../users/users.service';
+import { PublicUser } from '../users/types/user.types';
 
 @Injectable()
 export class RefreshTokenService {
@@ -20,6 +21,8 @@ export class RefreshTokenService {
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
   ) {}
+
+  //TODO: delete +30 days revoked tokens
 
   hashRefreshToken(token: string, salt?: string) {
     if (!salt) {
@@ -46,7 +49,31 @@ export class RefreshTokenService {
     }
   }
 
-  async issueRefreshToken(userId: number): Promise<string> {
+  generateRefreshToken(userId: number): {
+    refreshToken: string;
+    payload: { id: string; sub: number };
+    hash: string;
+    salt: string;
+  } {
+    try {
+      const jwtRefreshExp = getEnvVar('JWT_REFRESH_EXPIRATION');
+
+      const payload = { id: uuidv4(), sub: userId };
+
+      const refreshToken = this.jwtService.sign(payload, {
+        secret: getEnvVar('JWT_SUPER_SECRET'),
+        expiresIn: jwtRefreshExp,
+      });
+
+      const { hash, salt } = this.hashRefreshToken(refreshToken);
+
+      return { refreshToken, payload, hash, salt };
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async create(userId: number): Promise<string> {
     try {
       const jwtRefreshExp = getEnvVar('JWT_REFRESH_EXPIRATION');
       const msJwtRefreshExp = ms(jwtRefreshExp as ms.StringValue);
@@ -56,13 +83,8 @@ export class RefreshTokenService {
         throw new InternalServerErrorException('Invalid expiration date');
       }
 
-      const payload = { id: uuidv4(), sub: userId };
-      const newRefreshToken = this.jwtService.sign(payload, {
-        secret: getEnvVar('JWT_SUPER_SECRET'),
-        expiresIn: jwtRefreshExp,
-      });
-
-      const { hash, salt } = this.hashRefreshToken(newRefreshToken);
+      const { refreshToken, payload, hash, salt } =
+        this.generateRefreshToken(userId);
 
       await this.prisma.refreshToken.create({
         data: {
@@ -74,15 +96,16 @@ export class RefreshTokenService {
         },
       });
 
-      return newRefreshToken;
+      return refreshToken;
     } catch (error) {
       throw new InternalServerErrorException();
     }
   }
 
-  async rotate(refreshToken: string, userId: number): Promise<string> {
+  async rotate(refreshToken: string, user: PublicUser): Promise<string> {
     const decodedToken: RefreshTokenPayload =
       this.jwtService.decode(refreshToken);
+
     try {
       this.jwtService.verify(refreshToken, {
         secret: getEnvVar('JWT_SUPER_SECRET'),
@@ -96,12 +119,6 @@ export class RefreshTokenService {
         throw new UnauthorizedException('Refresh token not found in DB');
       }
 
-      const user = await this.usersService.findOneById(userId);
-
-      if (!user) {
-        throw new UnauthorizedException('User not found in DB');
-      }
-
       this.ensureRefreshTokenMatches(refreshToken, storedRefreshToken);
 
       await this.prisma.refreshToken.update({
@@ -111,7 +128,7 @@ export class RefreshTokenService {
         },
       });
 
-      return await this.issueRefreshToken(user.id);
+      return await this.create(user.id);
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||

@@ -5,14 +5,20 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Workout } from '../../generated/prisma';
+import { CreateWorkoutDto, UpdateWorkoutNameDto } from './dto/workout.dto';
 
 @Injectable()
 export class WorkoutService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: number, name: string): Promise<Workout> {
+  async create(
+    userId: number,
+    createWorkoutDto: CreateWorkoutDto,
+  ): Promise<Workout> {
     try {
-      return await this.prisma.workout.create({ data: { userId, name } });
+      return await this.prisma.workout.create({
+        data: { userId, ...createWorkoutDto },
+      });
     } catch (error) {
       throw new InternalServerErrorException(
         'An unexpected error occured during workout creation',
@@ -22,7 +28,9 @@ export class WorkoutService {
 
   async findOneById(id: number, userId: number): Promise<Workout | null> {
     try {
-      return await this.prisma.workout.findUnique({ where: { id, userId } });
+      return await this.prisma.workout.findUnique({
+        where: { id, userId },
+      });
     } catch (error) {
       throw new InternalServerErrorException(
         'An unexpected error occured during finding workout by id',
@@ -40,7 +48,11 @@ export class WorkoutService {
     }
   }
 
-  async updateName(id: number, userId: number, name: string): Promise<Workout> {
+  async updateName(
+    id: number,
+    userId: number,
+    updateWorkoutNameDto: UpdateWorkoutNameDto,
+  ): Promise<Workout> {
     try {
       const workout = await this.prisma.workout.findUnique({
         where: { id, userId },
@@ -53,7 +65,7 @@ export class WorkoutService {
       return await this.prisma.workout.update({
         where: { id, userId },
         data: {
-          name,
+          name: updateWorkoutNameDto.name,
         },
       });
     } catch (error) {

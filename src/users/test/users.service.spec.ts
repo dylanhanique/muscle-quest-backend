@@ -55,14 +55,15 @@ describe('UsersService', () => {
 
       expect(result).toEqual(mockResult);
       expect(result).not.toHaveProperty('password');
-      expect(prismaMock.user.create).toHaveBeenCalledWith({
-        data: {
-          username: createUserDto.username,
-          email: createUserDto.email,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          password: expect.any(String),
-        },
-      });
+      expect(prismaMock.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            username: createUserDto.username,
+            email: createUserDto.email,
+            password: expect.any(String) as unknown as string,
+          },
+        }),
+      );
     });
 
     it('should throw a ConflictException if credentials are already used', async () => {
@@ -82,14 +83,15 @@ describe('UsersService', () => {
       await expect(service.createUser(createUserDto)).rejects.toThrow(
         ConflictException,
       );
-      expect(prismaMock.user.create).toHaveBeenCalledWith({
-        data: {
-          username: createUserDto.username,
-          email: createUserDto.email,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          password: expect.any(String),
-        },
-      });
+      expect(prismaMock.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            username: createUserDto.username,
+            email: createUserDto.email,
+            password: expect.any(String) as unknown as string,
+          },
+        }),
+      );
     });
 
     it('should throw an InternalServerErrorException for other errors', async () => {
@@ -104,14 +106,15 @@ describe('UsersService', () => {
       await expect(service.createUser(createUserDto)).rejects.toThrow(
         'Internal Server Error',
       );
-      expect(prismaMock.user.create).toHaveBeenCalledWith({
-        data: {
-          username: createUserDto.username,
-          email: createUserDto.email,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          password: expect.any(String),
-        },
-      });
+      expect(prismaMock.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            username: createUserDto.username,
+            email: createUserDto.email,
+            password: expect.any(String) as unknown as string,
+          },
+        }),
+      );
     });
   });
 });
