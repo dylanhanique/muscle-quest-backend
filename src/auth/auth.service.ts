@@ -3,7 +3,7 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { AuthenticatedUser, CreateJwtPayload } from './types/auth.types';
 import { getEnvVar } from '../common/functions';
@@ -14,7 +14,7 @@ import { RefreshTokenPayload } from '../refresh-token/types/refresh-token.types'
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersService: UsersService,
+    private readonly usersService: UserService,
     private readonly jwtService: JwtService,
     private readonly refreshTokenService: RefreshTokenService,
   ) {}

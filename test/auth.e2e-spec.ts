@@ -6,7 +6,7 @@ import {
   prismaService,
   jwtService,
 } from './jest.setup.e2e';
-import { PublicUser } from '../src/users/types/user.types';
+import { PublicUser } from '../src/user/types/user.types';
 import { RefreshToken } from '../generated/prisma';
 import { getEnvVar } from '../src/common/functions';
 import { v4 as uuidv4 } from 'uuid';

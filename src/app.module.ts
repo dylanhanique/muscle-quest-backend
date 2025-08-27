@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import { UserModule } from './user/user.module';
 import { AppController } from './app.controlller';
 import { RefreshTokenModule } from './refresh-token/refresh-token.module';
 import { WorkoutModule } from './workout/workout.module';
@@ -13,7 +13,7 @@ import { WorkoutModule } from './workout/workout.module';
       envFilePath: [`.env.${process.env.NODE_ENV}`],
     }),
     AuthModule,
-    UsersModule,
+    UserModule,
     RefreshTokenModule,
     WorkoutModule,
   ],

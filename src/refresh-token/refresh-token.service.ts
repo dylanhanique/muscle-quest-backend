@@ -11,15 +11,15 @@ import { JsonWebTokenError, JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'crypto';
 import { RefreshToken } from '../../generated/prisma';
 import { RefreshTokenPayload } from './types/refresh-token.types';
-import { UsersService } from '../users/users.service';
-import { PublicUser } from '../users/types/user.types';
+import { UserService } from '../user/user.service';
+import { PublicUser } from '../user/types/user.types';
 
 @Injectable()
 export class RefreshTokenService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
-    private readonly usersService: UsersService,
+    private readonly usersService: UserService,
   ) {}
 
   //TODO: delete +30 days revoked tokens

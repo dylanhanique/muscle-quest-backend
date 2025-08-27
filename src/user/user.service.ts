@@ -10,7 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaClientKnownRequestError } from '../../generated/prisma/runtime/library';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findOneForLogin(username: string): Promise<UserCredentials | null> {

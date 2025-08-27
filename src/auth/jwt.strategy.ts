@@ -6,13 +6,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtPayload } from './types/auth.types';
-import { UsersService } from '../users/users.service';
+import { UserService } from '../user/user.service';
 import { getEnvVar } from '../common/functions';
-import { PublicUser } from '../users/types/user.types';
+import { PublicUser } from '../user/types/user.types';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly userService: UsersService) {
+  constructor(private readonly userService: UserService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,

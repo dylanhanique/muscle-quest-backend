@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtStrategy } from '../jwt.strategy';
-import { UsersService } from '../../users/users.service';
+import { UserService } from '../../user/user.service';
 import {
   InternalServerErrorException,
   UnauthorizedException,
@@ -31,7 +31,7 @@ describe('JwtStrategy', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JwtStrategy,
-        { provide: UsersService, useValue: usersServiceMock },
+        { provide: UserService, useValue: usersServiceMock },
       ],
     }).compile();
 

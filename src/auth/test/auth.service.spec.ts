@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '../auth.service';
-import { UsersService } from '../../users/users.service';
+import { UserService } from '../../user/user.service';
 import { LoginDto } from '../dto/auth.dto';
 import { faker } from '@faker-js/faker';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserCredentials } from 'src/users/types/user.types';
+import { UserCredentials } from 'src/user/types/user.types';
 import { AuthenticatedUser, CreateJwtPayload } from '../types/auth.types';
 import { getEnvVar } from '../../common/functions';
 import { RefreshTokenService } from '../../refresh-token/refresh-token.service';
@@ -83,7 +83,7 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        { provide: UsersService, useValue: usersServiceMock },
+        { provide: UserService, useValue: usersServiceMock },
         { provide: PrismaService, useValue: prismaServiceMock },
         { provide: JwtService, useValue: jwtServiceMock },
         { provide: RefreshTokenService, useValue: refreshTokenServiceMock },

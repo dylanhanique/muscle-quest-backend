@@ -10,7 +10,7 @@ import {
 import { v4 } from 'uuid';
 import { getEnvVar } from '../../common/functions';
 import * as ms from 'ms';
-import { UsersService } from '../../users/users.service';
+import { UserService } from '../../user/user.service';
 import { PrismaClientUnknownRequestError } from '../../../generated/prisma/runtime/library';
 
 jest.mock('../../common/functions', () => ({
@@ -77,7 +77,7 @@ describe('RefreshTokenService', () => {
         RefreshTokenService,
         { provide: PrismaService, useValue: prismaServiceMock },
         { provide: JwtService, useValue: jwtServiceMock },
-        { provide: UsersService, useValue: usersServiceMock },
+        { provide: UserService, useValue: usersServiceMock },
       ],
     }).compile();
 

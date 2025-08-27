@@ -1,5 +1,5 @@
 import { RefreshToken } from '../../generated/prisma';
-import { PublicUser } from '../../src/users/types/user.types';
+import { PublicUser } from '../../src/user/types/user.types';
 
 export type UserTestFixture = {
   password: string;

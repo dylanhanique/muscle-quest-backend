@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import * as ms from 'ms';
 import { v4 as uuidv4 } from 'uuid';
 import { RefreshToken, Workout } from '../generated/prisma';
-import { PublicUser } from '../src/users/types/user.types';
+import { PublicUser } from '../src/user/types/user.types';
 import { RefreshTokenTestFixture, UserTestFixture } from './types/test-types';
 import { JwtService } from '@nestjs/jwt';
 import { getEnvVar } from '../src/common/functions';
