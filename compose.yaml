@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    env_file:
+      - .env.development
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  db-test:
+    image: postgres:15
+    env_file:
+      - .env.test
+    volumes:
+      - db-test-data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+  backend:
+    build:
+      context: .
+      target: development
+    env_file:
+      - .env.development
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app/backend
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
+    command: sh -c "npx prisma migrate deploy && npm run start:dev"
+
+  backend-test:
+    build:
+      context: .
+      target: test
+    env_file:
+      - .env.test
+    depends_on:
+      - db-test
+    command: sh -c "npx prisma migrate deploy && npm run test:e2e"
+
+volumes:
+  db-data:
+  db-test-data:
+
+networks:
+  backend-network:
