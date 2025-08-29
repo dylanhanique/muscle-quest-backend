@@ -1,4 +1,3 @@
-import * as dotenv from 'dotenv';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
@@ -8,10 +7,6 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { setupApp } from '../src/bootstrap-app';
 import { TestUtils } from './test-utils';
 import { JwtService } from '@nestjs/jwt';
-
-dotenv.config({
-  path: `.env.${process.env.NODE_ENV}`,
-});
 
 let app: INestApplication;
 let httpServer: Server;
@@ -32,6 +27,10 @@ beforeAll(async () => {
   testUtils = new TestUtils(prismaService, jwtService);
 
   httpServer = app.getHttpServer() as Server;
+});
+
+beforeEach(async () => {
+  await testUtils.resetDatabase();
 });
 
 it('app should be defined', () => {

@@ -16,6 +16,24 @@ export class TestUtils {
     private readonly jwtService: JwtService,
   ) {}
 
+  async resetDatabase() {
+    const tablenames = await this.prismaService.$queryRaw<
+      Array<{ tablename: string }>
+    >`SELECT tablename FROM pg_tables WHERE schemaname='public'`;
+
+    for (const { tablename } of tablenames) {
+      if (tablename !== '_prisma_migrations') {
+        try {
+          await this.prismaService.$executeRawUnsafe(
+            `TRUNCATE TABLE "${tablename}" RESTART IDENTITY CASCADE;`,
+          );
+        } catch (err) {
+          console.error(`Error on truncate table: ${tablename}`, err);
+        }
+      }
+    }
+  }
+
   async createUserTestFixture(): Promise<UserTestFixture> {
     const password = faker.internet.password();
 
