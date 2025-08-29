@@ -21,7 +21,7 @@ describe('Auth e2e', () => {
     let password: string;
     let storedUser: PublicUser;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       ({ password, storedUser } = await testUtils.createUserTestFixture());
     });
 
