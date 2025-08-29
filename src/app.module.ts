@@ -10,7 +10,6 @@ import { WorkoutModule } from './workout/workout.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [`.env.${process.env.NODE_ENV}`],
     }),
     AuthModule,
     UserModule,

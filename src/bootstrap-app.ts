@@ -1,6 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { getEnvVar } from './common/functions';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 export async function setupApp(app: INestApplication) {
   app.useGlobalPipes(
@@ -11,12 +11,11 @@ export async function setupApp(app: INestApplication) {
       forbidUnknownValues: true,
     }),
   );
-  app.enableCors({
-    origin: getEnvVar('CORS_ORIGIN'),
-    credentials: true,
-  });
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  await app.init();
+  if (getEnvVar('NODE_ENV') === 'test') {
+    await app.init();
+  }
+
   return app;
 }
