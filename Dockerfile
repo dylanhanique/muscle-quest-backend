@@ -13,25 +13,27 @@ RUN npx prisma generate
 
 COPY . .
 
-## Dev stage
 
+# Dev stage
 FROM base AS development
 
 CMD ["npm", "run", "start:dev"]
 
-## Test stage
 
+# Test stage
 FROM base AS test
 ENV NODE_ENV=test
 
 CMD ["npm", "run", "test:e2e"]
+
 
 # Build stage
 FROM base AS build
 
 RUN npm run build
 
-## Build production
+
+# Production stage
 FROM node:22-alpine AS production
 
 WORKDIR /app/backend
@@ -41,6 +43,7 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 COPY --from=build /app/backend/dist ./dist
+COPY --from=build /app/backend/generated ./generated
 COPY --from=base /app/backend/prisma ./prisma
 
 EXPOSE 3000

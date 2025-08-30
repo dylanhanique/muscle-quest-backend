@@ -1,5 +1,5 @@
 services:
-  db:
+  db-development:
     image: postgres:15
     restart: always
     env_file:
@@ -7,7 +7,9 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-development-data:/var/lib/postgresql/data
+    networks:
+      - backend-development-network
 
   db-test:
     image: postgres:15
@@ -16,9 +18,19 @@ services:
     volumes:
       - db-test-data:/var/lib/postgresql/data
     networks:
-      - backend-network
+      - backend-test-network
 
-  backend:
+  db-production:
+    image: postgres:15
+    restart: always
+    env_file:
+      - .env.production
+    volumes:
+      - db-production-data:/var/lib/postgresql/data
+    networks:
+      - backend-production-network
+
+  backend-development:
     build:
       context: .
       target: development
@@ -27,7 +39,7 @@ services:
     ports:
       - 3000:3000
     depends_on:
-      - db
+      - db-development
     develop:
       watch:
         - action: sync
@@ -37,6 +49,8 @@ services:
             - node_modules/
         - action: rebuild
           path: package.json
+    networks:
+      - backend-development-network
     command: sh -c "npx prisma migrate deploy && npm run start:dev"
 
   backend-test:
@@ -47,11 +61,28 @@ services:
       - .env.test
     depends_on:
       - db-test
+    networks:
+      - backend-test-network
     command: sh -c "npx prisma migrate deploy && npm run test:e2e"
+  
+  backend-production:
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env.production
+    depends_on:
+      - db-production
+    networks:
+      - backend-production-network
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
 
 volumes:
-  db-data:
+  db-development-data:
   db-test-data:
+  db-production-data:
 
 networks:
-  backend-network:
+  backend-development-network:
+  backend-test-network:
+  backend-production-network:
