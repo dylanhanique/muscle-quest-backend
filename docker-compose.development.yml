@@ -32,7 +32,10 @@ services:
           path: package.json
     networks:
       - backend-development-network
-    command: sh -c "npx prisma migrate deploy && npm run start:dev"
+    command: sh -c "
+      npx prisma migrate deploy 
+      && npm run start:dev
+      "
 
 volumes:
   db-development-data:

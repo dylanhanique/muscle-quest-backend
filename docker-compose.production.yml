@@ -19,7 +19,10 @@ services:
       - db-production
     networks:
       - backend-production-network
-    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+    command: sh -c "
+      npx prisma migrate deploy 
+      && npm run start:prod
+      "
 
 volumes:
   db-production-data:

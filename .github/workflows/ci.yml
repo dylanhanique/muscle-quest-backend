@@ -24,7 +24,7 @@ jobs:
           echo "JWT_REFRESH_EXPIRATION=${{ secrets.JWT_REFRESH_EXPIRATION }}" >> .env.test
 
       - name: Run build, migration, unit and e2e tests
-        run: docker compose -f docker-compose.test.yml run --rm --build backend-test sh -c "npx prisma migrate deploy && npm run test && npm run test:e2e"
+        run: docker compose -f docker-compose.test.yml run --rm --build backend-test
         env:
           NODE_ENV: ${{ secrets.NODE_ENV }}
           PORT: ${{ secrets.PORT }}

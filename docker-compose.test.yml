@@ -18,7 +18,12 @@ services:
       - db-test
     networks:
       - backend-test-network
-    command: sh -c "npx prisma migrate deploy && npm run test:e2e"
+    command: sh -c "
+      npx wait-on tcp:db-test:5432
+      && npx prisma migrate deploy
+      && npm run test
+      && npm run test:e2e
+      "
 
 volumes:
   db-test-data:
