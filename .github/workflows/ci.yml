@@ -5,20 +5,40 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  unit-tests:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Code checkout
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
+      - name: Create .env.test file
+        run: |
+          echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env.test
+          echo "PORT=${{ secrets.PORT }}" >> .env.test
+          echo "CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}" >> .env.test
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env.test
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.test
+          echo "JWT_SUPER_SECRET=${{ secrets.JWT_SUPER_SECRET }}" >> .env.test
+          echo "JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }}" >> .env.test
+          echo "JWT_REFRESH_EXPIRATION=${{ secrets.JWT_REFRESH_EXPIRATION }}" >> .env.test
 
-      - name: Install dependencies
-        run: npm install
+      - name: Run build, migration, unit and e2e tests
+        run: docker compose -f docker-compose.test.yml run --rm --build backend-test sh -c "npx prisma migrate deploy && npm run test && npm run test:e2e"
+        env:
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          PORT: ${{ secrets.PORT }}
+          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_SUPER_SECRET: ${{ secrets.JWT_SUPER_SECRET }}
+          JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
+          JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
 
-      - name: Test application
-        run: npm run test
+      - name: Show backend-test logs if failed
+        if: failure()
+        run: docker compose -f docker-compose.test.yml logs backend-test
+
+      - name: Shutdown services
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
