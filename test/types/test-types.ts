@@ -3,7 +3,7 @@ import { PublicUser } from '../../src/user/types/user.types';
 
 export type UserTestFixture = {
   password: string;
-  storedUser: PublicUser;
+  user: PublicUser;
 };
 
 export type RefreshTokenTestFixture = {

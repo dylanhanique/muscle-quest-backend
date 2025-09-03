@@ -8,7 +8,7 @@ import { PublicUser } from '../src/user/types/user.types';
 import { RefreshTokenTestFixture, UserTestFixture } from './types/test-types';
 import { JwtService } from '@nestjs/jwt';
 import { getEnvVar } from '../src/common/functions';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 export class TestUtils {
   constructor(
@@ -37,7 +37,7 @@ export class TestUtils {
   async createUserTestFixture(): Promise<UserTestFixture> {
     const password = faker.internet.password();
 
-    const storedUser: PublicUser = await this.prismaService.user.create({
+    const user: PublicUser = await this.prismaService.user.create({
       data: {
         username: faker.internet.username(),
         email: faker.internet.email(),
@@ -46,7 +46,17 @@ export class TestUtils {
       select: { id: true, username: true, email: true },
     });
 
-    return { password, storedUser };
+    return { password, user };
+  }
+
+  createJwt(userId: number, username: string): string {
+    return this.jwtService.sign(
+      { sub: userId, username },
+      {
+        secret: getEnvVar('JWT_SECRET'),
+        expiresIn: getEnvVar('JWT_EXPIRATION'),
+      },
+    );
   }
 
   async createRefreshTokenTestFixture(

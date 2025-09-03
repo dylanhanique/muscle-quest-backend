@@ -8,7 +8,7 @@ import { getEnvVar } from '../common/functions';
 import * as ms from 'ms';
 import { v4 as uuidv4 } from 'uuid';
 import { JsonWebTokenError, JwtService } from '@nestjs/jwt';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { RefreshToken } from '../../generated/prisma';
 import { RefreshTokenPayload } from './types/refresh-token.types';
 import { UserService } from '../user/user.service';
