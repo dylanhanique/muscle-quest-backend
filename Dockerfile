@@ -2,16 +2,15 @@ ARG NODE_VERSION=22.17.0
 
 FROM node:${NODE_VERSION}-alpine AS base
 
-WORKDIR /app/backend
+WORKDIR /app
 
 COPY package*.json ./
 
 RUN npm install
 
-COPY prisma ./prisma
-RUN npx prisma generate
-
 COPY . .
+
+RUN npx prisma generate
 
 
 # Dev stage
@@ -22,7 +21,6 @@ CMD ["npm", "run", "start:dev"]
 
 # Test stage
 FROM base AS test
-ENV NODE_ENV=test
 
 CMD ["npm", "run", "test:e2e"]
 
@@ -36,15 +34,15 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine AS production
 
-WORKDIR /app/backend
+WORKDIR /app
 
 COPY package*.json ./
 
 RUN npm install --omit=dev
 
-COPY --from=build /app/backend/dist ./dist
-COPY --from=build /app/backend/generated ./generated
-COPY --from=base /app/backend/prisma ./prisma
+COPY --from=build /app/dist ./dist
+COPY --from=base /app/generated ./generated
+COPY --from=base /app/prisma ./prisma
 
 EXPOSE 3000
 CMD ["npm", "run", "start:prod"]
