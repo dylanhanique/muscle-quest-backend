@@ -1,0 +1,28 @@
+services:
+  db-production:
+    image: postgres:15
+    restart: always
+    env_file:
+      - .env.production
+    volumes:
+      - db-production-data:/var/lib/postgresql/data
+    networks:
+      - backend-production-network
+  
+  backend-production:
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env.production
+    depends_on:
+      - db-production
+    networks:
+      - backend-production-network
+    command: sh -c "npx prisma migrate deploy && npm run start:prod"
+
+volumes:
+  db-production-data:
+
+networks:
+  backend-production-network:

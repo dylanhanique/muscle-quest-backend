@@ -1,0 +1,27 @@
+services:
+  db-test:
+    image: postgres:15
+    env_file:
+      - .env.test
+    volumes:
+      - db-test-data:/var/lib/postgresql/data
+    networks:
+      - backend-test-network
+
+  backend-test:
+    build:
+      context: .
+      target: test
+    env_file:
+      - .env.test
+    depends_on:
+      - db-test
+    networks:
+      - backend-test-network
+    command: sh -c "npx prisma migrate deploy && npm run test:e2e"
+
+volumes:
+  db-test-data:
+
+networks:
+  backend-test-network:
