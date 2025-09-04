@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 jobs:
-  unit-tests:
+  tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,6 +38,10 @@ jobs:
       - name: Show backend-test logs if failed
         if: failure()
         run: docker compose -f docker-compose.test.yml logs backend-test
+
+      - name: Show db-test logs if failed
+        if: failure()
+        run: docker compose -f docker-compose.test.yml logs db-test
 
       - name: Shutdown services
         if: always()
