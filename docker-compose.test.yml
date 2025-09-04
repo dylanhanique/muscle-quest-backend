@@ -7,6 +7,12 @@ services:
       - db-test-data:/var/lib/postgresql/data
     networks:
       - backend-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   backend-test:
     build:
@@ -15,12 +21,13 @@ services:
     env_file:
       - .env.test
     depends_on:
-      - db-test
+      db-test:
+        condition: service_healthy
+        restart: true
     networks:
       - backend-test-network
     command: sh -c "
-      npx wait-on tcp:db-test:5432
-      && npx prisma migrate deploy
+      npx prisma migrate deploy
       && npm run test
       && npm run test:e2e
       "
