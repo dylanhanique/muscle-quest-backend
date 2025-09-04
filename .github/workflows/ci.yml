@@ -17,6 +17,9 @@ jobs:
           echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env.test
           echo "PORT=${{ secrets.PORT }}" >> .env.test
           echo "CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}" >> .env.test
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env.test
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env.test
+          echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> .env.test
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env.test
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.test
           echo "JWT_SUPER_SECRET=${{ secrets.JWT_SUPER_SECRET }}" >> .env.test
@@ -25,15 +28,6 @@ jobs:
 
       - name: Run build, migration, unit and e2e tests
         run: docker compose -f docker-compose.test.yml run --rm --build backend-test
-        env:
-          NODE_ENV: ${{ secrets.NODE_ENV }}
-          PORT: ${{ secrets.PORT }}
-          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          JWT_SUPER_SECRET: ${{ secrets.JWT_SUPER_SECRET }}
-          JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
-          JWT_REFRESH_EXPIRATION: ${{ secrets.JWT_REFRESH_EXPIRATION }}
 
       - name: Show backend-test logs if failed
         if: failure()
@@ -45,4 +39,4 @@ jobs:
 
       - name: Shutdown services
         if: always()
-        run: docker compose -f docker-compose.test.yml down
+        run: docker compose -f docker-compose.test.yml down -v
